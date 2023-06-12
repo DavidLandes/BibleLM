@@ -8,32 +8,90 @@ textDir = "./text/"
 testDir = "./test/"
 
 class WordNode:
-    def __init__(self, word="") -> None:
-        self.children = []
+    def __init__(self, word="", children=[]) -> None:
+        self.children = children
         self.word = word
         self.weight = 1
     
-    def getNextWord(self):
-        return getStrongestWord(self.children)
+    def getStrongestChildWord(self):
+        next = WordNode()
+        next.weight = -1
+        for n in self.children:
+            if n.weight > next.weight:
+                next = n
+        return next
+    
+    def getRandomChildWord(self):
+        if len(self.children) > 0:
+            index = rand.randint(0, len(self.children) - 1)
+            return self.children[index]
+        else:
+            return WordNode()
 
     def __str__(self) -> str:
         return f"{self.word} {self.weight}"
 
+class WordModel:
+    TEXT_DIR = "./test/"
+    
+    def __init__(self) -> None:
+        self.wordMap = {}
+        self.load()
 
-def getStrongestWord(wordNodeList):
-    next = WordNode()
-    next.weight = -1
-    for n in wordNodeList:
-        if n.weight > next.weight:
-            next = n
-    return next
+    def load(self) -> None:
+        self._createWordMap(self._readFiles(self.TEXT_DIR))
 
-def getRandomWord(wordNodeList):
-    if len(wordNodeList) > 0:
-        index = rand.randint(0, len(wordNodeList) - 1)
-        return wordNodeList[index]
-    else:
-        return WordNode()
+    def _readFiles(self, directory: str):
+        if os.path.exists(directory) and os.path.isdir(directory):
+            for filename in os.listdir(directory):
+                filepath = os.path.join(directory, filename)
+                with open(filepath, "r", encoding="utf-8") as file:
+                    for line in file.readlines():
+                        yield line
+
+    def _wordList(self, sentence: str) -> list:
+        # Split sentence into words without punctuation.
+        line = re.sub("[^a-zA-Z ]", "", sentence).strip().lower()
+        return line.split(" ")
+
+    def _createWordMap(self, listOfSentences: list) -> None:
+        for line in listOfSentences:
+            # Match verses, which have a number at the start.
+            if isInt(line.split(" ")[0]):
+                words = self._wordList(line)
+                for i in range(0, len(words)):
+                    w = words[i]
+                    prev, next = wordsBeforeAfter(words, i)
+                    # Create map where a string key corresponds to a list of word nodes.
+                    self.addWord(w, next)
+
+    def addWord(self, word: str, nextWord: str) -> None:
+        # Add word to the map along with another word that will follow it in a sentence.
+        if not word in self.wordMap.keys():
+            newWord = WordNode(word, [ WordNode(nextWord) ])
+            self.wordMap[word] = newWord
+        else:
+            added = False
+            for n in self.wordMap[word].children:
+                if n.word == nextWord:
+                    n.weight += 1
+                    added = True
+                    break
+            if not added:
+                self.wordMap[word].children.append(WordNode(nextWord))
+    
+    def __getitem__(self, key: str) -> WordNode:
+        if self.__contains__(key):
+            return self.wordMap[key]
+        else:
+            return None
+    
+    def __contains__(self, key: str) -> bool:
+        return key in self.wordMap.keys()
+    
+    def __len__(self):
+        return len(self.wordMap.keys())
+
 
 def wordsBeforeAfter(words, index):
     if len(words) <= 1 or (index < 0 and index >= len(words)):
@@ -54,48 +112,10 @@ def isInt(val):
         return type(int(val)) is int
     except:
         return False 
-def readFiles(directory):
-    if os.path.exists(directory) and os.path.isdir(directory):
-        for filename in os.listdir(directory):
-            filepath = os.path.join(directory, filename)
-            with open(filepath, "r", encoding="utf-8") as file:
-                for line in file.readlines():
-                    yield line
 
-def wordList(sentence):
-    # Split sentence into words without punctuation.
-    line = re.sub("[^a-zA-Z ]", "", sentence).strip().lower()
-    return line.split(" ")
-
-def createWordMap():
-    wordMap = {}
-    for line in readFiles(textDir):
-        # Match verses, which have a number at the start.
-        if isInt(line.split(" ")[0]):
-            words = wordList(line)
-            for i in range(0, len(words)):
-                w = words[i]
-                prev, next = wordsBeforeAfter(words, i)
-                # Create map where a string key corresponds to a list of word nodes.
-                addWordToMap(wordMap, w, next)
-    return wordMap
-
-def addWordToMap(wordMap, word, nextWord):
-    # Add word to the map along with another word that will follow it in a sentence.
-    if not word in wordMap.keys():
-        wordMap[word] = [ WordNode(nextWord) ]
-    else:
-        added = False
-        for n in wordMap[word]:
-            if n.word == nextWord:
-                n.weight += 1
-                added = True
-                break
-        if not added:
-            wordMap[word].append(WordNode(nextWord))
 
 print("Loading...")
-wmap = createWordMap()
+model = WordModel()
 print("Finished. Enter a word & I will try to guess the next..")
 
 
@@ -107,8 +127,11 @@ while word != "q":
 
     # Add the user's response to my last guess as a new option.
     if learningEnabled and lastGuess != "" and word != "":
-        addWordToMap(wmap, lastGuess, word)
+        model.addWord(lastGuess, word)
 
-    lastGuess = getRandomWord(wmap[word]) if word in wmap.keys() else ""
+    if word in model:
+        lastGuess = model[word].getRandomChildWord()
+    else:
+        lastGuess = ""
     print(lastGuess)
 
