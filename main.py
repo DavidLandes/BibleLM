@@ -32,7 +32,7 @@ class WordNode:
         return f"{self.word} {self.weight}"
 
 class WordModel:
-    TEXT_DIR = "./test/"
+    TEXT_DIR = "./text/"
     
     def __init__(self) -> None:
         self.wordMap = {}
