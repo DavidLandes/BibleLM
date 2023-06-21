@@ -114,6 +114,10 @@ def isInt(val):
         return False 
 
 def main():
+  """
+  If the user runs the program as a script, they can interact with the model
+  interactively.
+  """
   print("Loading...")
   model = WordModel()
   print("Finished. Enter a word & I will try to guess the next..")
@@ -135,6 +139,6 @@ def main():
           lastGuess = ""
       print(lastGuess)
 
-if __name__ == '__main':
+if __name__ == '__main__':
   main()
 
