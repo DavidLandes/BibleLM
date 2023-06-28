@@ -113,25 +113,32 @@ def isInt(val):
     except:
         return False 
 
+def main():
+  """
+  If the user runs the program as a script, they can interact with the model
+  interactively.
+  """
+  print("Loading...")
+  model = WordModel()
+  print("Finished. Enter a word & I will try to guess the next..")
 
-print("Loading...")
-model = WordModel()
-print("Finished. Enter a word & I will try to guess the next..")
 
+  learningEnabled = True
+  word = ""
+  lastGuess = ""
+  while word != "q":
+      word = re.sub("[^a-zA-Z]", "", input("?").lower().strip())
 
-learningEnabled = True
-word = ""
-lastGuess = ""
-while word != "q":
-    word = re.sub("[^a-zA-Z]", "", input("?").lower().strip())
+      # Add the user's response to my last guess as a new option.
+      if learningEnabled and lastGuess != "" and word != "":
+          model.addWord(lastGuess, word)
 
-    # Add the user's response to my last guess as a new option.
-    if learningEnabled and lastGuess != "" and word != "":
-        model.addWord(lastGuess, word)
+      if word in model:
+          lastGuess = model[word].getRandomChildWord()
+      else:
+          lastGuess = ""
+      print(lastGuess)
 
-    if word in model:
-        lastGuess = model[word].getRandomChildWord()
-    else:
-        lastGuess = ""
-    print(lastGuess)
+if __name__ == "__main__":
+  main()
 
